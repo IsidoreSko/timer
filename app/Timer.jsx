@@ -1,7 +1,11 @@
 import { clsx } from "clsx";
 import { Bell } from "lucide-react";
+import { CircularProgress } from "./CircularProgress";
+import { useTimerStore } from "./timer.store";
+import { X, Pause, Play, RotateCcw } from "lucide-react";
 
-export const Timer = ({ timer }) => {
+export const Timer = ({ id }) => {
+  const timer = useTimerStore((store) => store.timers.find((t) => t.id === id));
   const endAt = new Date(timer.endAt);
 
   const timeText = getTimeText(timer.timeLeft);
@@ -15,7 +19,13 @@ export const Timer = ({ timer }) => {
       )}
     >
       <div className="relative flex size-full flex-col items-center justify-center gap-1">
-        {/* {timer.id} */}
+        <CircularProgress
+          className="absolute"
+          timeLeft={timer.timeLeft}
+          duration={timer.duration}
+          width={180}
+          radiusRatio={0.9}
+        />
         <div className="flex items-center justify-between gap-2">
           <Bell size={16} className="text-neutral-content" />
           <p>{`${endAt.getHours()}:${endAt
@@ -23,7 +33,68 @@ export const Timer = ({ timer }) => {
             .toString()
             .padStart(2, "0")}`}</p>
         </div>
+        <TimeDisplay timeLeft={timer.timeLeft} />
+        <DurationDisplay duration={timer.duration} />
       </div>
+      <TimerControls {...timer} />
+    </div>
+  );
+};
+
+const TimerControls = ({ id, isRunning, timeLeft }) => {
+  const removeTimer = useTimerStore((s) => s.removeTimer);
+  const toggleRunning = useTimerStore((s) => s.toggleRunning);
+  return (
+    <>
+      <button
+        className="absolute bottom-3 left-3 flex size-7 items-center justify-center rounded-full bg-"
+        onClick={() => removeTimer(id)}
+      >
+        <X size={14} />
+      </button>
+      <button
+        className={clsx(
+          "absolute bottom-3 right-3 flex size-7 items-center justify-center rounded-full",
+          {
+            "bg-warning text-warning-content": isRunning,
+            "bg-success text-success-content": !isRunning,
+          }
+        )}
+        onClick={() => toggleRunning(id)}
+      >
+        {isRunning ? (
+          <Pause fill="currentColor" size={14} />
+        ) : timeLeft > 0 ? (
+          <Play fill="currentColor" size={14} />
+        ) : (
+          <RotateCcw size={14} />
+        )}
+      </button>
+    </>
+  );
+};
+
+const TimeDisplay = ({ timeLeft }) => {
+  const timeText = getTimeText(timeLeft);
+  const timeHMS = millisecondsToHMS(timeLeft);
+  return (
+    <div className="relative flex items-center justify-center">
+      <p
+        className={clsx("font-light text-base-content", {
+          "text-4xl": !timeHMS.hrs,
+          "text-2xl": timeHMS.hrs,
+        })}
+      >
+        {timeText}
+      </p>
+    </div>
+  );
+};
+const DurationDisplay = ({ duration }) => {
+  const text = getDurationText(duration);
+  return (
+    <div className="relative flex items-center justify-center">
+      <p className="text-sm text-neutral-content">{text}</p>
     </div>
   );
 };
@@ -48,11 +119,25 @@ const padHMS = (timeHMS) => ({
 
 const getTimeText = (timeLeft) => {
   const timeLeftHMS = millisecondsToHMS(timeLeft);
-  const timeLeftPadHSM = padHMS(timeLeftHMS);
+  const timeLeftPadHMS = padHMS(timeLeftHMS);
 
-  const durationText = `${timeLeftPadHSM.mins}:${timeLeftPadHSM.secs}`;
+  let durationText = `${timeLeftPadHMS.mins}:${timeLeftPadHMS.secs}`;
 
   if (timeLeftHMS.hrs) {
-    durationText = `${timeLeftPaHSM.hrs}:${durationText}`;
+    durationText = `${timeLeftPadHMS.hrs}:${durationText}`;
   }
+  return durationText;
+};
+
+const getDurationText = (duration) => {
+  const durationHMS = millisecondsToHMS(duration);
+
+  if (durationHMS.hrs) {
+    return `${durationHMS.hrs}hrs`;
+  }
+
+  if (durationHMS.mins) {
+    return `${durationHMS.mins}mins`;
+  }
+  return `${durationHMS.secs}secs`;
 };

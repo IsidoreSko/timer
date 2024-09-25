@@ -7,7 +7,6 @@ export const AddTimerForm = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    // console.log(name, value);
     setTime((curr) => ({
       ...curr,
       [name]: formatTimeValue(value, name === "hrs" ? 23 : 59),
